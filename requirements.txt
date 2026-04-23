@@ -1,0 +1,13 @@
+# AutoStream Agent – Python dependencies
+# Run: pip install -r requirements.txt
+
+# LangChain & LangGraph (Required for Mandatory Stack)
+langchain>=0.3.0
+langchain-core>=0.3.0
+langgraph>=0.2.0
+
+# LLM SDK (Gemini 1.5 Flash required by assignment)
+langchain-google-genai>=2.0.0
+
+# Environment variables
+python-dotenv>=1.0.0
