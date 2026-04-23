@@ -9,8 +9,8 @@
 ### 1. Clone / download the project
 
 ```bash
-git clone <your-repo-url>
-cd autostream-agent
+git clone https://github.com/avnigaur21/rag-pipeline.git
+cd rag-pipeline
 ```
 
 ### 2. Create a virtual environment (recommended)
@@ -29,12 +29,10 @@ pip install -r requirements.txt
 
 ### 4. Set Environment Variables
 
-You must provide a Gemini API key:
+You must provide a Gemini API key. Create a `.env` file in the root directory and add:
 ```bash
-export GEMINI_API_KEY="your-api-key"   # macOS / Linux
-set GEMINI_API_KEY=your-api-key        # Windows
+GEMINI_API_KEY=your-api-key
 ```
-*(Note: A default key is included in the source for testing convenience, but setting your own is recommended).*
 
 ### 5. Run the agent
 
@@ -70,25 +68,19 @@ Agent: 🎉 You're all set, John Smith! ...
 
 ---
 
-## Architecture (~200 words)
+## Architecture
 
-### Why LangGraph?
+### Framework
 
-**LangGraph** was selected as the core framework because it provides explicit, robust control over the agent's workflow using a directed graph (`StateGraph`), perfectly matching the assignment's state machine requirements. Unlike a "black-box" ReAct agent, a custom LangGraph ensures 100% deterministic routing for Intent Detection and Lead Capture workflows while leveraging **Gemini 1.5 Flash** strictly for natural language generation. This hybrid approach guarantees the agent never hallucinates during the critical lead-capture sequence but remains highly conversational during product inquiries.
+The agent is built with **LangGraph** to provide explicit, robust control over the conversational workflow using a directed graph (`StateGraph`). It uses **Gemini 2.5 Flash** for natural language generation. This hybrid approach guarantees deterministic routing for lead-capture sequences while remaining highly conversational during product inquiries.
 
 ### State Management
 
-State is managed via LangGraph's `AgentState` `TypedDict` and persisted across the session using `langgraph.checkpoint.memory.MemorySaver`. The state retains:
-- `messages`: The conversational history buffer (persisting across >5 turns).
-- `intent`: The active user intent.
-- `collecting_lead`: A flag indicating if the agent is in the sequential lead flow.
-- `lead_data`: Form fields (`name`, `email`, `platform`).
+State is managed via LangGraph's `AgentState` and persisted across the session using `langgraph.checkpoint.memory.MemorySaver`. The state tracks the conversational history buffer, the active user intent, and any collected lead data (`name`, `email`, `platform`).
 
-Because `MemorySaver` tracks the `thread_id`, the agent seamlessly remembers context (such as partially filled lead forms) across multiple interactions.
+### Retrieval-Augmented Generation (RAG)
 
-### RAG (Retrieval-Augmented Generation)
-
-When a pricing inquiry is detected, the graph routes to the RAG node. It fetches precise details from a local `knowledge.json` via keyword matching, and injects it into Gemini's context window. This grounds the LLM, ensuring it answers questions without fabricating pricing or policies.
+When a pricing inquiry is detected, the graph routes to the RAG node. It fetches precise details from a local `knowledge.json` via keyword matching, and injects it into Gemini's context window.
 
 ---
 
@@ -101,15 +93,3 @@ To deploy this agent on WhatsApp using Webhooks:
 3. **Session Persistence**: Instead of the in-memory `MemorySaver`, use `langgraph.checkpoint.postgres` or Redis to store the LangGraph checkpointer state, keyed by the user's WhatsApp phone number.
 4. **Execution**: Pass the incoming message to `graph.invoke(..., config={"configurable": {"thread_id": phone_number}})`.
 5. **Sending Replies**: Take the resulting `AIMessage` and POST it back via the WhatsApp Business API.
-
----
-
-## Evaluation Notes
-
-| Criterion | Implementation |
-|---|---|
-| **Mandatory Stack** | Uses **LangGraph** (StateGraph), **Gemini 1.5 Flash**, and Python 3.10+ |
-| **Intent detection** | Custom node explicitly classifies intents and routes graph edges |
-| **RAG** | Retrieval node extracts from `knowledge.json` and grounds Gemini LLM |
-| **State management** | `MemorySaver` checkpointer retains state and messages indefinitely |
-| **Tool calling** | Lead capture node sequentially collects 3 fields and exclusively fires `mock_lead_capture()` upon completion |

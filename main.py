@@ -1,10 +1,5 @@
 """
-main.py – AutoStream Conversational AI Agent (LangGraph + Gemini)
-
-This file fulfills the strict Mandatory Stack requirements:
-- Framework: LangGraph
-- LLM: Gemini 1.5 Flash
-- State Management: MemorySaver (checkpointer)
+main.py – AutoStream Conversational AI Agent
 """
 
 import os
@@ -26,9 +21,7 @@ from dotenv import load_dotenv
 
 load_dotenv() # Load from .env
 
-# ── Force API Key ──
-# If the user has a broken system-wide GOOGLE_API_KEY, it overrides GEMINI_API_KEY in LangChain.
-# We must delete it from the runtime environment to force the correct key to be used.
+# Force correct API key from .env
 if "GEMINI_API_KEY" in os.environ:
     os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
     
@@ -41,7 +34,7 @@ from utils.lead import try_collect_field, is_lead_complete, mock_lead_capture, g
 # Use gemini-2.5-flash since gemini-1.5-flash is deprecated and removed
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
 
-# ── 1. State Definition ──
+# State Definition
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
     intent: str
@@ -49,7 +42,7 @@ class AgentState(TypedDict):
     lead_data: dict
     lead_captured: bool
 
-# ── 2. Nodes ──
+# Graph Nodes
 
 def intent_node(state: AgentState):
     """Classifies the intent of the last user message."""
@@ -110,7 +103,6 @@ def lead_capture_node(state: AgentState):
         
     # Check if we have collected all 3 required fields
     if is_lead_complete(updated_lead_data):
-        # ── Tool Execution ──
         success_msg = mock_lead_capture(
             updated_lead_data["name"], 
             updated_lead_data["email"], 
@@ -139,7 +131,7 @@ def general_node(state: AgentState):
     response = llm.invoke([SystemMessage(content=prompt), state["messages"][-1]])
     return {"messages": [AIMessage(content=response.content)]}
 
-# ── 3. Routing Logic ──
+# Routing Logic
 def route_intent(state: AgentState):
     intent = state["intent"]
     if intent == "continue_lead":
@@ -153,7 +145,7 @@ def route_intent(state: AgentState):
     else:
         return "general"
 
-# ── 4. Build LangGraph ──
+# Build LangGraph
 builder = StateGraph(AgentState)
 
 builder.add_node("intent_identifier", intent_node)
@@ -162,7 +154,6 @@ builder.add_node("rag", RAG_node)
 builder.add_node("lead_capture", lead_capture_node)
 builder.add_node("general", general_node)
 
-# Flow: User Message -> Intent Identifier -> Routing -> Specific Node -> END
 builder.add_edge(START, "intent_identifier")
 builder.add_conditional_edges(
     "intent_identifier",
@@ -180,11 +171,10 @@ builder.add_edge("rag", END)
 builder.add_edge("lead_capture", END)
 builder.add_edge("general", END)
 
-# Must retain memory across 5-6 conversation turns -> MemorySaver
 memory = MemorySaver()
 graph = builder.compile(checkpointer=memory)
 
-# ── CLI Runner ──
+# CLI Runner
 
 BANNER = """
 ╔══════════════════════════════════════════════════════╗
