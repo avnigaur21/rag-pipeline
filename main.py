@@ -64,14 +64,12 @@ def RAG_node(state: AgentState):
         kb_result = get_all_pricing()
         
     prompt = f"""
-User asked: {last_msg}
-
 Here is the retrieved product information from our knowledge base:
 {kb_result}
 
 Based ONLY on the retrieved info, answer the user clearly, conversationally, and accurately.
 """
-    response = llm.invoke([SystemMessage(content=prompt)])
+    response = llm.invoke([SystemMessage(content=prompt), state["messages"][-1]])
     return {"messages": [AIMessage(content=response.content)]}
 
 def greeting_node(state: AgentState):
