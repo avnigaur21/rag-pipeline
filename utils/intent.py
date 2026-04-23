@@ -29,9 +29,8 @@ PRICING_KEYWORDS = [
 
 HIGH_INTENT_KEYWORDS = [
     "sign up", "signup", "subscribe", "buy", "purchase",
-    "get started", "start", "join", "try", "i want",
-    "i'd like", "i would like", "ready", "let's go",
-    "let me", "i'll take", "i'm in", "count me in",
+    "get started", "start", "join", "try", "ready", "let's go",
+    "i'll take", "i'm in", "count me in",
     "register", "enroll", "onboard"
 ]
 
